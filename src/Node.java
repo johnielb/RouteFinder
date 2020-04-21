@@ -23,7 +23,7 @@ public class Node {
 	public Node(int nodeID, double lat, double lon) {
 		this.nodeID = nodeID;
 		this.location = Location.newFromLatLon(lat, lon);
-		this.segments = new HashSet<Segment>();
+		this.segments = new HashSet<>();
 	}
 
 	public void addSegment(Segment seg) {
@@ -42,17 +42,18 @@ public class Node {
 	}
 
 	public String toString() {
-		Set<String> edges = new HashSet<String>();
+		Set<String> edges = new HashSet<>();
 		for (Segment s : segments) {
-			if (!edges.contains(s.road.name))
-				edges.add(s.road.name);
+			edges.add(s.road.name);
 		}
 
-		String str = "ID: " + nodeID + "  loc: " + location + "\nroads: ";
+		StringBuilder str = new StringBuilder(nodeID + " " + "(");
 		for (String e : edges) {
-			str += e + ", ";
+			str.append(e).append(" / ");
 		}
-		return str.substring(0, str.length() - 2);
+		str.delete(str.length()-3, str.length());
+		str.append(")");
+		return str.toString();
 	}
 }
 

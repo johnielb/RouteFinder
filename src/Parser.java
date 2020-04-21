@@ -60,16 +60,12 @@ public class Parser {
                                city = tokens[3];
                         int oneway = asInt(tokens[4]),
                             speed = asInt(tokens[5]),
-                            road_class = asInt(tokens[6]),
-                            not_for_car = asInt(tokens[7]),
-                            not_for_pedestrian = asInt(tokens[8]),
-                            not_for_bicycle = asInt(tokens[9]);
+                            road_class = asInt(tokens[6]);
 
                         return new Road(
                                 roadID, type, label,
                                 city, oneway, speed,
-                                road_class, not_for_car,
-                                not_for_pedestrian, not_for_bicycle
+                                road_class
                         );
                     };
 
@@ -110,6 +106,52 @@ public class Parser {
                         .map(splitByTab)
                         .map(toSegment)
                         .collect(Collectors.toSet());
+		}catch (IOException | NumberFormatException e){
+			throw new RuntimeException("file reading failed.");
+		}
+	}
+
+	public static Map<Node, List<Restriction>> parseRestrictions(
+			File restrictions,
+			Graph graph
+	)
+	{
+		try{
+			final Function<Restriction, Node> key = res -> res.curr;
+			final Function<Restriction, List<Restriction>> value = res -> {
+				List<Restriction> l = new ArrayList<>();
+				l.add(res);
+				return l;
+			};
+			final BinaryOperator<List<Restriction>> merge = (old, latest) -> {
+				old.addAll(latest);
+				return old;
+			};
+			final Function<String[], Restriction> toRestriction =
+					tokens -> {
+						int prevNodeID = asInt(tokens[0]);
+						Node prev = graph.nodes.get(prevNodeID);
+						int prevRdID = asInt(tokens[1]);
+						Road prevRd = graph.roads.get(prevRdID);
+						int currNodeID = asInt(tokens[2]);
+						Node curr = graph.nodes.get(currNodeID);
+						int nextRdID = asInt(tokens[3]);
+						Road nextRd = graph.roads.get(nextRdID);
+						int nextNodeID = asInt(tokens[4]);
+						Node next = graph.nodes.get(nextNodeID);
+
+						return new Restriction(
+								prevRd, nextRd,
+								prev, curr, next
+						);
+					};
+
+			return Files.lines(restrictions.toPath())
+					.skip(1)	//skip header
+					.parallel()
+					.map(splitByTab)
+					.map(toRestriction)
+					.collect(Collectors.toMap(key, value, merge));
 		}catch (IOException | NumberFormatException e){
 			throw new RuntimeException("file reading failed.");
 		}

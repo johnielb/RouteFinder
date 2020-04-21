@@ -42,6 +42,11 @@ public class Mapper extends GUI {
 	// our data structures.
 	private Graph graph;
 
+	private Map<Node, List<Restriction>> restrictions;
+
+	// whether to calculate journey by time (true) or distance (false)
+	protected static boolean isTime = false;
+
 
 	@Override
 	protected void redraw(Graphics g) {
@@ -51,6 +56,7 @@ public class Mapper extends GUI {
 
 	@Override
 	protected void onClick(MouseEvent e) {
+		if (graph == null) return;
 		Location clicked = Location.newFromPoint(e.getPoint(), origin, scale);
 		// find the closest node.
 		double bestDist = Double.MAX_VALUE;
@@ -73,7 +79,7 @@ public class Mapper extends GUI {
 		// start selected and goal not selected
 		if (graph.start != null && graph.goal == null) {
 			graph.goal = closest;
-			getTextOutputArea().setText("Start of journey: "+graph.start.toString()+"\nEnd of journey: "+ graph.goal.toString()+"\n");
+			getTextOutputArea().setText("Journey from "+graph.start.toString()+" to "+graph.goal.toString()+":\n");
 			findRoute();
 		} else {
 			graph.start = closest;
@@ -82,7 +88,7 @@ public class Mapper extends GUI {
 	}
 
 	/**
-	 * TODO: explain
+	 * Implements A* search over graph, taking into account one-way streets.
 	 */
 	private void findRoute() {
 		PriorityQueue<FringeElement> fringe = new PriorityQueue<>();
@@ -97,32 +103,55 @@ public class Mapper extends GUI {
 
 				if (currentNode.equals(graph.goal)) break;
 
+				segmentLoop:
 				for (Segment s : currentNode.segments) {
-					Node neigh = null;
+					Node next = null;
 					if (s.start.equals(currentNode)) {
-						neigh = s.end;
-					} else if (s.road.oneWay == 0) {
-						neigh = s.start;
+						next = s.end;
+					} else if (s.road.oneWay == 0) { // if not one-way, allow backwards direction
+						next = s.start;
 					}
-					if (neigh != null && !visited.contains(neigh)) {
-						double costSoFar = current.getCostSoFar() + s.length;
-						double estCost = costSoFar + heuristic(neigh);
-						fringe.add(new FringeElement(neigh, currentNode, estCost, costSoFar));
+
+					if (next != null && !visited.contains(next)) {
+						if (restrictions.containsKey(currentNode)) {
+							for (Restriction r : restrictions.get(currentNode)) {
+								if (r.notAllowed(currentNode.prev, currentNode, next, s.road)) continue segmentLoop;
+							}
+						}
+
+						double costSoFar = current.getCostSoFar();
+						if (isTime) costSoFar += s.length/s.road.getSpeed(true);
+						else costSoFar += s.length;
+						double estCost = costSoFar + heuristic(next);
+						fringe.add(new FringeElement(next, currentNode, estCost, costSoFar));
 					}
 				}
 			}
 		}
 		//graph.setVisited(visited);
 
+		constructPath();
+	}
+
+	/**
+	 * Constructs path of Roads starting from the goal back to the finish, and
+	 * highlights it on the GUI and displays information about determined journey.
+	 */
+	private void constructPath() {
 		List<Road> path = new ArrayList<>();
+		List<Node> nodes = new ArrayList<>();
+		graph.setHighlight(path);
+		if (graph == null || graph.goal == null) return;
 		Node current = graph.goal;
-		double totalDistance = 0.0;
+		double total = 0.0;
 		while (!current.equals(graph.start)) {
 			for (Segment s : current.segments) {
 				if (s.start.equals(current.prev) || s.end.equals(current.prev)) {
-					totalDistance += s.length;
+					if (isTime) total += s.length / s.road.getSpeed(false);
+					else total += s.length;
+
 					Road newRd = new Road(s.road.roadID, 0, s.road.name, s.road.city,
-							0,0,0,0,0,0);
+							0,0,0);
 					newRd.addSegment(s);
 					if (path.isEmpty()) {
 						path.add(newRd);
@@ -134,21 +163,58 @@ public class Mapper extends GUI {
 							path.add(newRd);
 						}
 					}
-
+					break;
 				}
 			}
+			nodes.add(current);
 			current = current.prev;
+			if (current == null) {
+				path.clear();
+				getTextOutputArea().append("No path found.");
+				return;
+			}
 		}
+		nodes.add(graph.start);
+		Collections.reverse(nodes);
 		Collections.reverse(path);
-		graph.setHighlight(path);
 		for (Road r : path) {
-			getTextOutputArea().append(r.toString());
+			getTextOutputArea().append(" - "+r.toString());
 		}
-		getTextOutputArea().append(String.format("Total distance: %.3f km\n", totalDistance));
+		if (Mapper.isTime) getTextOutputArea().append("Total time: "+parseTime(total));
+		else getTextOutputArea().append(String.format("Total distance: %.3f km\n", total));
 	}
 
 	private double heuristic(Node n) {
+		if (isTime) return n.location.distance(graph.goal.location)/Road.MAX_SPEED;
 		return n.location.distance(graph.goal.location);
+	}
+
+	public static String parseTime(double h) {
+		double m = h % 1 * 60;
+		int hours = (int) h;
+		if (h < 1) {
+			return String.format("%.3f minutes\n", m);
+		}
+		return String.format("%d hours %.3f minutes\n", hours, m);
+	}
+
+	@Override
+	protected void onUnitChange(boolean toChange) {
+		if (toChange) {
+			if (!isTime) {
+				isTime = true;
+				if (graph == null) return;
+				getTextOutputArea().setText("Journey from "+graph.start.toString()+" to "+graph.goal.toString()+":\n");
+				findRoute();
+			}
+		} else {
+			if (isTime) {
+				isTime = false;
+				if (graph == null) return;
+				getTextOutputArea().setText("Journey from "+graph.start.toString()+" to "+graph.goal.toString()+":\n");
+				findRoute();
+			}
+		}
 	}
 
 	@Override
@@ -183,10 +249,13 @@ public class Mapper extends GUI {
 	}
 
 	@Override
-	protected void onLoad(File nodes, File roads, File segments, File polygons) {
+	protected void onLoad(File nodes, File roads, File segments, File polygons, File rests) {
 		graph = new Graph(nodes, roads, segments, polygons);
 		origin = new Location(-6, 0); // close enough
 		scale = 85;
+		if (rests != null) restrictions = Parser.parseRestrictions(rests, graph);
+		else restrictions = new HashMap<>();
+		getTextOutputArea().setText("Click on a node to set the starting position, click again to set the goal position.");
 	}
 
 	/**

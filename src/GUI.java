@@ -11,20 +11,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 import java.io.File;
 
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JComponent;
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JSplitPane;
-import javax.swing.JTextArea;
-import javax.swing.JTextField;
+import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.text.DefaultCaret;
 
@@ -77,6 +64,12 @@ public abstract class GUI {
 	protected abstract void onMove(Move m);
 
 	/**
+	 * TODO: explain
+	 * @param isTime
+	 */
+	protected abstract void onUnitChange(boolean isTime);
+
+	/**
 	 * Is called when the user has successfully selected a directory to load the
 	 * data files from. File objects representing the four files of interested
 	 * are passed to the method. The fourth File, polygons, might be null if it
@@ -90,9 +83,11 @@ public abstract class GUI {
 	 *            a File for roadSeg-roadID-length-nodeID-nodeID-coords.tab
 	 * @param polygons
 	 *            a File for polygon-shapes.mp
+	 * @param rests
+	 * 			  a File for restrictions.tab
 	 */
 	protected abstract void onLoad(File nodes, File roads, File segments,
-			File polygons);
+			File polygons, File rests);
 
 	// here are some useful methods you'll need.
 
@@ -144,6 +139,7 @@ public abstract class GUI {
 	private static final String ROADS_FILENAME = "roadID-roadInfo.tab";
 	private static final String SEGS_FILENAME = "roadSeg-roadID-length-nodeID-nodeID-coords.tab";
 	private static final String POLYS_FILENAME = "polygon-shapes.mp";
+	private static final String RESTS_FILENAME = "restrictions.tab";
 
 	/*
 	 * In Swing, everything is a component; buttons, graphics panes, tool tips,
@@ -192,7 +188,7 @@ public abstract class GUI {
 		JButton load = new JButton("Load");
 		load.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent ev) {
-				File nodes = null, roads = null, segments = null, polygons = null;
+				File nodes = null, roads = null, segments = null, polygons = null, restrictions = null;
 
 				// set up the file chooser
 				fileChooser.setCurrentDirectory(new File("."));
@@ -215,6 +211,8 @@ public abstract class GUI {
 							segments = f;
 						} else if (f.getName().equals(POLYS_FILENAME)) {
 							polygons = f;
+						} else if (f.getName().equals(RESTS_FILENAME)) {
+							restrictions = f;
 						}
 					}
 
@@ -225,7 +223,7 @@ public abstract class GUI {
 								"Directory does not contain correct files",
 								"Error", JOptionPane.ERROR_MESSAGE);
 					} else {
-						onLoad(nodes, roads, segments, polygons);
+						onLoad(nodes, roads, segments, polygons, restrictions);
 						redraw();
 					}
 				}
@@ -278,6 +276,16 @@ public abstract class GUI {
 				onMove(Move.ZOOM_OUT);
 				redraw();
 			}
+		});
+
+		JRadioButton distance = new JRadioButton("Shortest route");
+		distance.setSelected(true);
+		distance.addActionListener(e -> {
+			onUnitChange(false);
+		});
+		JRadioButton time = new JRadioButton("Fastest route");
+		time.addActionListener(e -> {
+			onUnitChange(true);
 		});
 
 		// next, make the search box at the top-right. we manually fix
@@ -347,6 +355,17 @@ public abstract class GUI {
 		navigation.add(south);
 		navigation.add(east);
 		controls.add(navigation);
+
+		JPanel units = new JPanel();
+		units.setMaximumSize(new Dimension(50, 60));
+		units.setLayout(new GridLayout(2, 1));
+		ButtonGroup unitsGroup = new ButtonGroup();
+		unitsGroup.add(distance);
+		unitsGroup.add(time);
+		units.add(distance);
+		units.add(time);
+		controls.add(units);
+
 		controls.add(Box.createRigidArea(new Dimension(15, 0)));
 		// glue is another invisible component that grows to take up all the
 		// space it can on resize.
