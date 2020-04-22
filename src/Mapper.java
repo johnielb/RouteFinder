@@ -120,9 +120,12 @@ public class Mapper extends GUI {
 						}
 
 						double costSoFar = current.getCostSoFar();
+
 						if (isTime) costSoFar += s.length/s.road.getSpeed(true);
 						else costSoFar += s.length;
+
 						double estCost = costSoFar + heuristic(next);
+						assert current.getEstCost() <= estCost : "Inconsistent heuristic";
 						fringe.add(new FringeElement(next, currentNode, estCost, costSoFar));
 					}
 				}
@@ -139,7 +142,7 @@ public class Mapper extends GUI {
 	 */
 	private void constructPath() {
 		List<Road> path = new ArrayList<>();
-		List<Node> nodes = new ArrayList<>();
+		//List<Node> nodes = new ArrayList<>();
 		graph.setHighlight(path);
 		if (graph == null || graph.goal == null) return;
 		Node current = graph.goal;
@@ -166,7 +169,7 @@ public class Mapper extends GUI {
 					break;
 				}
 			}
-			nodes.add(current);
+			//nodes.add(current);
 			current = current.prev;
 			if (current == null) {
 				path.clear();
@@ -174,8 +177,8 @@ public class Mapper extends GUI {
 				return;
 			}
 		}
-		nodes.add(graph.start);
-		Collections.reverse(nodes);
+		//nodes.add(graph.start);
+		//Collections.reverse(nodes);
 		Collections.reverse(path);
 		for (Road r : path) {
 			getTextOutputArea().append(" - "+r.toString());
@@ -199,21 +202,18 @@ public class Mapper extends GUI {
 	}
 
 	@Override
-	protected void onUnitChange(boolean toChange) {
-		if (toChange) {
-			if (!isTime) {
-				isTime = true;
-				if (graph == null) return;
-				getTextOutputArea().setText("Journey from "+graph.start.toString()+" to "+graph.goal.toString()+":\n");
-				findRoute();
-			}
-		} else {
-			if (isTime) {
-				isTime = false;
-				if (graph == null) return;
-				getTextOutputArea().setText("Journey from "+graph.start.toString()+" to "+graph.goal.toString()+":\n");
-				findRoute();
-			}
+	protected void onUnitChange(boolean newIsTime) {
+		if (newIsTime && !isTime) {
+			isTime = true;
+			if (graph == null || graph.start == null) return;
+			getTextOutputArea().setText("Journey from "+graph.start.toString()+" to "+graph.goal.toString()+":\n");
+			findRoute();
+			redraw();
+		} else if (!newIsTime && isTime) {
+			isTime = false;
+			if (graph == null || graph.start == null) return;
+			getTextOutputArea().setText("Journey from "+graph.start.toString()+" to "+graph.goal.toString()+":\n");
+			findRoute();
 		}
 	}
 

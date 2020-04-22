@@ -39,12 +39,13 @@ public class Road {
 	/**
 	 * Convert speed classification into actual speed.
 	 * Classification of 7 (no speed limit) follows maximum speed limit 6 = 110 km/h
+	 * @param isSearching if true, apply weighting based on road class when searching
 	 * @return speed of road in km/h
 	 */
 	public double getSpeed(boolean isSearching) {
-		double weight = 0.06; // how much influence road class has
+		double weight = 0.04; // how much influence road class has
 		double handicap = 1.0;
-		if (isSearching) handicap -= weight*(roadClass+1);
+		if (isSearching) handicap -= weight*(4-roadClass);
 		assert handicap > 0 : "Speed reduction parameters are too strong, results in negative speed.";
 		switch (speed) {
 			case 0:

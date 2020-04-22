@@ -64,10 +64,10 @@ public abstract class GUI {
 	protected abstract void onMove(Move m);
 
 	/**
-	 * TODO: explain
-	 * @param isTime
+	 * Called when one of two radio buttons are pressed dealing with the search mode.
+	 * @param newIsTime true if changing to time, false to distance.
 	 */
-	protected abstract void onUnitChange(boolean isTime);
+	protected abstract void onUnitChange(boolean newIsTime);
 
 	/**
 	 * Is called when the user has successfully selected a directory to load the
@@ -282,10 +282,12 @@ public abstract class GUI {
 		distance.setSelected(true);
 		distance.addActionListener(e -> {
 			onUnitChange(false);
+			redraw();
 		});
 		JRadioButton time = new JRadioButton("Fastest route");
 		time.addActionListener(e -> {
 			onUnitChange(true);
+			redraw();
 		});
 
 		// next, make the search box at the top-right. we manually fix
