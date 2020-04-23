@@ -153,8 +153,7 @@ public class Mapper extends GUI {
 					if (isTime) total += s.length / s.road.getSpeed(false);
 					else total += s.length;
 
-					Road newRd = new Road(s.road.roadID, 0, s.road.name, s.road.city,
-							0,0,0);
+					Road newRd = s.road.copyOf();
 					newRd.addSegment(s);
 					if (path.isEmpty()) {
 						path.add(newRd);
@@ -205,13 +204,13 @@ public class Mapper extends GUI {
 	protected void onUnitChange(boolean newIsTime) {
 		if (newIsTime && !isTime) {
 			isTime = true;
-			if (graph == null || graph.start == null) return;
+			if (graph == null || graph.goal == null) return;
 			getTextOutputArea().setText("Journey from "+graph.start.toString()+" to "+graph.goal.toString()+":\n");
 			findRoute();
 			redraw();
 		} else if (!newIsTime && isTime) {
 			isTime = false;
-			if (graph == null || graph.start == null) return;
+			if (graph == null || graph.goal == null) return;
 			getTextOutputArea().setText("Journey from "+graph.start.toString()+" to "+graph.goal.toString()+":\n");
 			findRoute();
 		}

@@ -32,6 +32,14 @@ public class Road {
 		roadClass = roadclass;
 	}
 
+	/**
+	 * Create copy of this road to add path segments into
+	 * @return copy of this road
+	 */
+	public Road copyOf() {
+		return new Road(roadID, type, name, city, oneWay, speed, roadClass);
+	}
+
 	public void addSegment(Segment seg) {
 		components.add(seg);
 	}
@@ -61,7 +69,7 @@ public class Road {
 			case 5:
 				return 100.0*handicap;
 			default:
-				return MAX_SPEED;
+				return MAX_SPEED*handicap;
 		}
 	}
 

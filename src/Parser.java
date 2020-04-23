@@ -56,14 +56,22 @@ public class Parser {
                     tokens -> {
                         int roadID = asInt(tokens[0]),
                             type = asInt(tokens[1]);
-                        String label = tokens[2],
-                               city = tokens[3];
+                        String city = tokens[3];
                         int oneway = asInt(tokens[4]),
                             speed = asInt(tokens[5]),
                             road_class = asInt(tokens[6]);
 
+                        // capitalise all words in road name
+                        String[] nameWords = tokens[2].split("\\s");
+                        StringBuilder nameBuilder = new StringBuilder();
+                        for (String w : nameWords) {
+                        	if (w.length() > 1) nameBuilder.append(w.toUpperCase().charAt(0)).append(w.substring(1));
+                        	else nameBuilder.append(w);
+                        	nameBuilder.append(" ");
+						}
+
                         return new Road(
-                                roadID, type, label,
+                                roadID, type, nameBuilder.substring(0, nameBuilder.length()-1),
                                 city, oneway, speed,
                                 road_class
                         );
