@@ -278,13 +278,13 @@ public abstract class GUI {
 			}
 		});
 
-		JRadioButton distance = new JRadioButton("Shortest route");
+		JRadioButton distance = new JRadioButton("Shortest path");
 		distance.setSelected(true);
 		distance.addActionListener(e -> {
 			onUnitChange(false);
 			redraw();
 		});
-		JRadioButton time = new JRadioButton("Fastest route");
+		JRadioButton time = new JRadioButton("Fastest path");
 		time.addActionListener(e -> {
 			onUnitChange(true);
 			redraw();

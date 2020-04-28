@@ -51,7 +51,7 @@ public class Road {
 	 * @return speed of road in km/h
 	 */
 	public double getSpeed(boolean isSearching) {
-		double weight = 0.04; // how much influence road class has
+		double weight = 0.06; // how much influence road class has
 		double handicap = 1.0;
 		if (isSearching) handicap -= weight*(4-roadClass);
 		assert handicap > 0 : "Speed reduction parameters are too strong, results in negative speed.";
@@ -95,13 +95,14 @@ public class Road {
 
 	@Override
 	public String toString() {
-		double sum = 0.0;
+		double distance = 0.0;
+		double time = 0.0;
+		for (Segment s : components) distance += s.length;
 		if (Mapper.isTime) {
-			for (Segment s : components) sum += s.length / s.road.getSpeed(false);
-			return name+": "+Mapper.parseTime(sum);
+			for (Segment s : components) time += s.length / s.road.getSpeed(false);
+			return String.format("%s: %s (%.3f km)\n", name, Mapper.parseTime(time), distance);
 		}
-		for (Segment s : components) sum += s.length;
-		return String.format("%s: %.3f km\n", name, sum);
+		return String.format("%s: %.3f km\n", name, distance);
 	}
 }
 

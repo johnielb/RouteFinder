@@ -73,14 +73,19 @@ public class Mapper extends GUI {
 		// if it's close enough, highlight it and show some information.
 		if (clicked.distance(closest.location) < MAX_CLICKED_DISTANCE) {
 			graph.setHighlight(closest);
-			getTextOutputArea().setText(closest.toString());
+			getTextOutputArea().setText("Selected "+closest.toString()+" as start of journey.");
 		}
 
 		// start selected and goal not selected
 		if (graph.start != null && graph.goal == null) {
 			graph.goal = closest;
-			getTextOutputArea().setText("Journey from "+graph.start.toString()+" to "+graph.goal.toString()+":\n");
-			findRoute();
+			graph.goal.prev = null; // ensure the goal hasn't been found
+			if (graph.goal == graph.start) {
+				getTextOutputArea().setText("No journey possible if same nodes are selected.");
+			} else {
+				getTextOutputArea().setText("Journey from "+graph.start.toString()+" to "+graph.goal.toString()+":\n");
+				findRoute();
+			}
 		} else {
 			graph.start = closest;
 			graph.goal = null;
@@ -131,7 +136,6 @@ public class Mapper extends GUI {
 				}
 			}
 		}
-		//graph.setVisited(visited);
 
 		constructPath();
 	}
@@ -142,9 +146,7 @@ public class Mapper extends GUI {
 	 */
 	private void constructPath() {
 		List<Road> path = new ArrayList<>();
-		//List<Node> nodes = new ArrayList<>();
 		graph.setHighlight(path);
-		if (graph == null || graph.goal == null) return;
 		Node current = graph.goal;
 		double total = 0.0;
 		while (!current.equals(graph.start)) {
@@ -168,7 +170,6 @@ public class Mapper extends GUI {
 					break;
 				}
 			}
-			//nodes.add(current);
 			current = current.prev;
 			if (current == null) {
 				path.clear();
@@ -176,8 +177,6 @@ public class Mapper extends GUI {
 				return;
 			}
 		}
-		//nodes.add(graph.start);
-		//Collections.reverse(nodes);
 		Collections.reverse(path);
 		for (Road r : path) {
 			getTextOutputArea().append(" - "+r.toString());
@@ -195,9 +194,9 @@ public class Mapper extends GUI {
 		double m = h % 1 * 60;
 		int hours = (int) h;
 		if (h < 1) {
-			return String.format("%.3f minutes\n", m);
+			return String.format("%.3f minutes", m);
 		}
-		return String.format("%d hours %.3f minutes\n", hours, m);
+		return String.format("%d hours %.3f minutes", hours, m);
 	}
 
 	@Override
